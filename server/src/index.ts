@@ -1,5 +1,5 @@
-const { serve } = require("@hono/node-server");
-const { Hono } = require("hono");
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
 
 const posts = [
   {
@@ -27,6 +27,28 @@ const posts = [
 
 const app = new Hono();
 
-app.get("/v1/posts", (c) => c.json(posts));
+app.get("/v1/posts", async (c) => c.json(posts));
 
-serve(app); // port 3000
+app.get("/v1/posts/:id", async (c) => {
+  const post = posts.find((p) => p.id === Number(c.req.param("id")));
+  if (!post) return c.json(null, 404);
+  return c.json(post, 200);
+});
+
+app.post("/v1/posts", async (c) => {
+  const data = await c.req.json();
+  // validera att data är det vi vill ha.
+  const post = { id: Date.now(), ...data };
+  posts.push(post);
+  return c.json(post, 201);
+});
+
+serve(
+  {
+    fetch: app.fetch,
+    port: 3000,
+  },
+  (info) => {
+    console.log(`Server is running on http://localhost:${info.port}`);
+  },
+);
